@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>NDLKotenOCR-Lite Worker テスト</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Helvetica Neue", Arial, sans-serif;
+        line-height: 1.6;
+        color: #333;
+        background-color: #f5f5f5;
+      }
+
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px;
+      }
+
+      .header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 2rem;
+        border-radius: 10px;
+        margin-bottom: 30px;
+        text-align: center;
+      }
+
+      .header h1 {
+        font-size: 2.5rem;
+        margin-bottom: 0.5rem;
+      }
+
+      .header p {
+        font-size: 1.1rem;
+        opacity: 0.9;
+      }
+
+      .status-bar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: white;
+        padding: 1rem;
+        border-radius: 8px;
+        margin-bottom: 30px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      }
+
+      .status-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .status-ready {
+        color: #28a745;
+        font-weight: bold;
+      }
+
+      .status-loading {
+        color: #ffc107;
+        font-weight: bold;
+      }
+
+      .main-content {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 30px;
+        margin-bottom: 30px;
+      }
+
+      .card {
+        background: white;
+        border-radius: 10px;
+        padding: 2rem;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+      }
+
+      .card h2 {
+        color: #4a5568;
+        margin-bottom: 1.5rem;
+        border-bottom: 2px solid #e2e8f0;
+        padding-bottom: 0.5rem;
+      }
+
+      .drop-zone {
+        border: 3px dashed #cbd5e0;
+        border-radius: 10px;
+        padding: 3rem;
+        text-align: center;
+        transition: all 0.3s ease;
+        cursor: pointer;
+        background: #f8fafc;
+      }
+
+      .drop-zone:hover {
+        border-color: #667eea;
+        background: #eef2ff;
+      }
+
+      .drop-zone.drag-over {
+        border-color: #667eea;
+        background: #eef2ff;
+        transform: scale(1.02);
+      }
+
+      .drop-zone.disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+
+      .file-input {
+        display: none;
+      }
+
+      .file-info {
+        margin-top: 1rem;
+        padding: 1rem;
+        background: #f7fafc;
+        border-radius: 8px;
+        border-left: 4px solid #667eea;
+      }
+
+      .file-info-item {
+        margin-bottom: 0.5rem;
+      }
+
+      .settings-form {
+        display: grid;
+        gap: 1rem;
+      }
+
+      .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+      }
+
+      .form-group label {
+        font-weight: 600;
+        color: #4a5568;
+      }
+
+      .form-group select,
+      .form-group input {
+        padding: 0.75rem;
+        border: 2px solid #e2e8f0;
+        border-radius: 6px;
+        font-size: 1rem;
+      }
+
+      .form-group select:focus,
+      .form-group input:focus {
+        outline: none;
+        border-color: #667eea;
+      }
+
+      .checkbox-group {
+        display: flex;
+        gap: 1rem;
+        margin-top: 0.5rem;
+      }
+
+      .checkbox-item {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+
+      .button {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        padding: 0.75rem 1.5rem;
+        border-radius: 6px;
+        font-size: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+      }
+
+      .button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+      }
+
+      .button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        transform: none;
+        box-shadow: none;
+      }
+
+      .button-secondary {
+        background: #6c757d;
+      }
+
+      .button-danger {
+        background: #dc3545;
+      }
+
+      .controls {
+        display: flex;
+        gap: 1rem;
+        margin-top: 1rem;
+      }
+
+      .progress-container {
+        margin-top: 2rem;
+      }
+
+      .progress-bar {
+        width: 100%;
+        height: 20px;
+        background: #e2e8f0;
+        border-radius: 10px;
+        overflow: hidden;
+      }
+
+      .progress-bar::-webkit-progress-bar {
+        background: #e2e8f0;
+        border-radius: 10px;
+      }
+
+      .progress-bar::-webkit-progress-value {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 10px;
+      }
+
+      .progress-text {
+        text-align: center;
+        margin-top: 0.5rem;
+        font-weight: 600;
+        color: #4a5568;
+      }
+
+      .message {
+        padding: 1rem;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        font-weight: 600;
+      }
+
+      .message-success {
+        background: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
+      }
+
+      .message-error {
+        background: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f5c6cb;
+      }
+
+      .message-info {
+        background: #d1ecf1;
+        color: #0c5460;
+        border: 1px solid #bee5eb;
+      }
+
+      .result-container {
+        grid-column: 1 / -1;
+        margin-top: 30px;
+      }
+
+      .result-tabs {
+        display: flex;
+        border-bottom: 2px solid #e2e8f0;
+        margin-bottom: 2rem;
+      }
+
+      .tab-button {
+        background: none;
+        border: none;
+        padding: 1rem 2rem;
+        font-size: 1rem;
+        font-weight: 600;
+        color: #718096;
+        cursor: pointer;
+        border-bottom: 3px solid transparent;
+        transition: all 0.3s ease;
+      }
+
+      .tab-button.active {
+        color: #667eea;
+        border-bottom-color: #667eea;
+      }
+
+      .tab-content {
+        background: white;
+        border-radius: 10px;
+        padding: 2rem;
+      }
+
+      .text-block {
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        margin-bottom: 1rem;
+        overflow: hidden;
+      }
+
+      .block-header {
+        background: #f8fafc;
+        padding: 0.75rem 1rem;
+        border-bottom: 1px solid #e2e8f0;
+        display: flex;
+        gap: 1rem;
+        flex-wrap: wrap;
+        font-size: 0.875rem;
+      }
+
+      .block-number {
+        font-weight: bold;
+        color: #667eea;
+      }
+
+      .block-text {
+        padding: 1rem;
+        font-family: "Courier New", monospace;
+        white-space: pre-wrap;
+        background: white;
+      }
+
+      .result-content-text,
+      .result-content-json,
+      .result-content-xml {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 6px;
+        padding: 1rem;
+        overflow-x: auto;
+        max-height: 500px;
+        white-space: pre-wrap;
+        font-family: "Courier New", monospace;
+        font-size: 0.875rem;
+      }
+
+      .download-section {
+        display: flex;
+        gap: 1rem;
+        margin-top: 2rem;
+        padding-top: 2rem;
+        border-top: 2px solid #e2e8f0;
+      }
+
+      .hidden {
+        display: none !important;
+      }
+
+      .stat-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.75rem 0;
+        border-bottom: 1px solid #e2e8f0;
+      }
+
+      .stat-item:last-child {
+        border-bottom: none;
+      }
+
+      .stat-label {
+        font-weight: 600;
+        color: #4a5568;
+      }
+
+      .stat-value {
+        font-weight: bold;
+        color: #667eea;
+      }
+
+      @media (max-width: 768px) {
+        .main-content {
+          grid-template-columns: 1fr;
+        }
+
+        .controls {
+          flex-direction: column;
+        }
+
+        .status-bar {
+          flex-direction: column;
+          gap: 1rem;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <!-- ヘッダー -->
+      <div class="header">
+        <h1>NDLKotenOCR-Lite Worker</h1>
+        <p>Web Workerを使用した古典籍OCRテストページ</p>
+      </div>
+
+      <!-- ステータスバー -->
+      <div class="status-bar">
+        <div class="status-item">
+          <span>アプリ状態:</span>
+          <span id="app-status" class="status-loading">初期化中...</span>
+        </div>
+        <div class="status-item">
+          <button id="preload-models" class="button">
+            モデル事前ダウンロード
+          </button>
+        </div>
+      </div>
+
+      <!-- メッセージ表示 -->
+      <div id="message-display" class="message hidden"></div>
+
+      <!-- メインコンテンツ -->
+      <div class="main-content">
+        <!-- ファイル選択セクション -->
+        <div class="card">
+          <h2>📁 ファイル選択</h2>
+          <div id="drop-zone" class="drop-zone">
+            <p>画像ファイルをここにドラッグ&ドロップ<br />または</p>
+            <button
+              class="button"
+              onclick="document.getElementById('file-input').click()"
+            >
+              ファイルを選択
+            </button>
+            <input
+              type="file"
+              id="file-input"
+              class="file-input"
+              accept="image/*"
+            />
+          </div>
+          <div id="file-info" class="file-info hidden"></div>
+
+          <!-- プログレス表示 -->
+          <div id="progress-container" class="progress-container hidden">
+            <progress
+              id="progress-bar"
+              class="progress-bar"
+              value="0"
+              max="100"
+            ></progress>
+            <div id="progress-text" class="progress-text">処理中...</div>
+          </div>
+
+          <!-- コントロールボタン -->
+          <div class="controls">
+            <button id="process-btn" class="button" disabled>OCR実行</button>
+            <button
+              id="cancel-processing"
+              class="button button-danger"
+              disabled
+            >
+              キャンセル
+            </button>
+          </div>
+        </div>
+
+        <!-- 設定セクション -->
+        <div class="card">
+          <h2>⚙️ 設定</h2>
+          <form id="settings-form" class="settings-form">
+            <div class="form-group">
+              <label for="reading-direction">読み方向:</label>
+              <select id="reading-direction" name="reading-direction">
+                <option value="vertical">縦書き</option>
+                <option value="horizontal">横書き</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="column-direction">列方向:</label>
+              <select id="column-direction" name="column-direction">
+                <option value="right-to-left">右から左</option>
+                <option value="left-to-right">左から右</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label>出力形式:</label>
+              <div class="checkbox-group">
+                <div class="checkbox-item">
+                  <input
+                    type="checkbox"
+                    id="output-txt"
+                    name="output-format"
+                    value="txt"
+                    checked
+                  />
+                  <label for="output-txt">テキスト</label>
+                </div>
+                <div class="checkbox-item">
+                  <input
+                    type="checkbox"
+                    id="output-json"
+                    name="output-format"
+                    value="json"
+                  />
+                  <label for="output-json">JSON</label>
+                </div>
+                <div class="checkbox-item">
+                  <input
+                    type="checkbox"
+                    id="output-xml"
+                    name="output-format"
+                    value="xml"
+                  />
+                  <label for="output-xml">XML</label>
+                </div>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- 結果表示セクション -->
+      <div id="result-container" class="result-container card hidden">
+        <h2>📊 処理結果</h2>
+
+        <!-- 統計情報 -->
+        <div id="result-statistics"></div>
+
+        <!-- タブ -->
+        <div id="result-tabs" class="result-tabs">
+          <button class="tab-button active" data-tab="text">テキスト</button>
+          <button class="tab-button" data-tab="blocks">ブロック詳細</button>
+          <button class="tab-button" data-tab="json">JSON</button>
+          <button class="tab-button" data-tab="xml">XML</button>
+        </div>
+
+        <!-- タブコンテンツ -->
+        <div id="result-content">
+          <div id="result-text" class="tab-content"></div>
+          <div id="result-blocks" class="tab-content hidden">
+            <div id="text-blocks"></div>
+          </div>
+          <div id="result-json" class="tab-content hidden"></div>
+          <div id="result-xml" class="tab-content hidden"></div>
+        </div>
+
+        <!-- ダウンロードセクション -->
+        <div class="download-section">
+          <button class="button" data-download="txt" disabled>
+            テキストダウンロード
+          </button>
+          <button class="button" data-download="json" disabled>
+            JSONダウンロード
+          </button>
+          <button class="button" data-download="xml" disabled>
+            XMLダウンロード
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- JavaScriptの読み込み -->
+    <script type="module" src="../src/main.js"></script>
+  </body>
+</html>
