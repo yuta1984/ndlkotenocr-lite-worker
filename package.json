@@ -10,7 +10,8 @@
     "test": "vite --config vite.test.config.js"
   },
   "dependencies": {
-    "onnxruntime-web": "^1.17.0"
+    "js-yaml": "^4.1.0",
+    "onnxruntime-web": "^1.20.0"
   },
   "devDependencies": {
     "vite": "^5.0.0"

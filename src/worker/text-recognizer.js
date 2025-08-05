@@ -1,235 +1,147 @@
 /**
- * 文字認識モジュール
- * PARSeq-NDLモデルを使用してテキスト領域内の文字を認識
+ * NDLKotenOCR Web版 - 文字列認識モジュール
+ *
+ * このファイルは、PARSeqモデルを使用して検出されたテキスト領域内の文字を認識するモジュールです。
+ * 元のPythonコードのsrc/parseq.pyを参考に実装しています。
  */
 
-import * as ort from "onnxruntime-web";
+import { ort, createSession } from './onnx-config.js';
+import * as yaml from 'js-yaml';
 
+/**
+ * PARSEQ クラス
+ * 画像内のテキストを認識するクラス
+ */
 export class TextRecognizer {
   constructor() {
     this.session = null;
     this.inputSize = { width: 384, height: 32 };
     this.initialized = false;
-    this.vocabulary = this.createVocabulary();
+    this.config = {
+      inputShape: [1, 3, 32, 384], // デフォルト入力サイズ
+      charList: [], // 文字リスト
+      maxLength: 25, // 最大文字列長
+    };
+    this.configPath = '/config/NDLmoji.yaml';
   }
 
   /**
-   * 語彙の作成（NDL古典籍文字セット）
+   * 設定ファイルを読み込む（参考版準拠・js-yaml使用）
+   *
+   * @param {string} configPath 設定ファイルのパス
+   * @returns {Promise<Object>} 読み込まれた設定
    */
-  createVocabulary() {
-    // NDL古典籍OCRの文字セット（簡略版）
-    // 実際の実装では、より完全な古典籍文字セットが必要
-    const chars = [
-      "<blank>",
-      "<unk>",
-      "<s>",
-      "</s>",
-      "あ",
-      "い",
-      "う",
-      "え",
-      "お",
-      "か",
-      "き",
-      "く",
-      "け",
-      "こ",
-      "が",
-      "ぎ",
-      "ぐ",
-      "げ",
-      "ご",
-      "さ",
-      "し",
-      "す",
-      "せ",
-      "そ",
-      "ざ",
-      "じ",
-      "ず",
-      "ぜ",
-      "ぞ",
-      "た",
-      "ち",
-      "つ",
-      "て",
-      "と",
-      "だ",
-      "ぢ",
-      "づ",
-      "で",
-      "ど",
-      "な",
-      "に",
-      "ぬ",
-      "ね",
-      "の",
-      "は",
-      "ひ",
-      "ふ",
-      "へ",
-      "ほ",
-      "ば",
-      "び",
-      "ぶ",
-      "べ",
-      "ぼ",
-      "ぱ",
-      "ぴ",
-      "ぷ",
-      "ぺ",
-      "ぽ",
-      "ま",
-      "み",
-      "む",
-      "め",
-      "も",
-      "や",
-      "ゆ",
-      "よ",
-      "ら",
-      "り",
-      "る",
-      "れ",
-      "ろ",
-      "わ",
-      "ゐ",
-      "ゑ",
-      "を",
-      "ん",
-      "ー",
-      "々",
-      "〆",
-      "〇",
-      "一",
-      "二",
-      "三",
-      "四",
-      "五",
-      "六",
-      "七",
-      "八",
-      "九",
-      "十",
-      "百",
-      "千",
-      "万",
-      "上",
-      "下",
-      "中",
-      "大",
-      "小",
-      "人",
-      "今",
-      "日",
-      "月",
-      "年",
-      "出",
-      "来",
-      "行",
-      "見",
-      "聞",
-      "言",
-      "話",
-      "書",
-      "読",
-      "学",
-      "国",
-      "家",
-      "天",
-      "地",
-      "山",
-      "川",
-      "海",
-      "火",
-      "水",
-      "木",
-      "金",
-      "土",
-      "男",
-      "女",
-      "子",
-      "父",
-      "母",
-      "兄",
-      "弟",
-      "姉",
-      "妹",
-      "友",
-      "先",
-      "生",
-      "車",
-      "電",
-      "気",
-      "店",
-      "町",
-      "村",
-      "市",
-      "県",
-      "東",
-      "西",
-      "南",
-      "北",
-      "右",
-      "左",
-      "前",
-      "後",
-      "内",
-      "外",
-      "近",
-      "遠",
-      "高",
-      "低",
-      "長",
-      "短",
-      "新",
-      "古",
-      "白",
-      "黒",
-      "赤",
-      "青",
-      "黄",
-      "緑",
-      "明",
-      "暗",
-      "早",
-      "遅",
-      "多",
-      "少",
-      "良",
-      "悪",
-      "美",
-      "醜",
-      "強",
-      "弱",
-      "太",
-      "細",
-    ];
+  async loadConfig(configPath = null) {
+    const path = configPath || this.configPath;
+    if (!path) {
+      console.log(
+        '設定ファイルのパスが指定されていません。デフォルト設定を使用します。'
+      );
+      return this.config;
+    }
 
-    const vocab = {};
-    chars.forEach((char, index) => {
-      vocab[index] = char;
-    });
+    try {
+      // 設定ファイルを取得
+      const response = await fetch(path);
+      if (!response.ok) {
+        throw new Error(
+          `設定ファイルの取得に失敗しました: ${response.statusText}`
+        );
+      }
 
-    return vocab;
+      const yamlText = await response.text();
+      const yamlConfig = yaml.load(yamlText);
+
+      // 文字認識設定を取得
+      if (yamlConfig && yamlConfig.text_recognition) {
+        const textConfig = yamlConfig.text_recognition;
+
+        // 設定を更新
+        if (textConfig.input_shape !== undefined) {
+          this.config.inputShape = textConfig.input_shape;
+        }
+        if (textConfig.max_length !== undefined) {
+          this.config.maxLength = textConfig.max_length;
+        }
+      }
+
+      // 文字リストを取得
+      if (
+        yamlConfig &&
+        yamlConfig.model &&
+        yamlConfig.model.charset_train
+      ) {
+        this.config.charList =
+          yamlConfig.model.charset_train.split('');
+        console.log(
+          `文字リストを読み込みました: ${this.config.charList.length}文字`
+        );
+      }
+
+      console.log(
+        '設定ファイルを読み込みました:',
+        this.config
+      );
+      return this.config;
+    } catch (error) {
+      console.warn(
+        `設定ファイルの読み込みに失敗しました: ${error.message}。デフォルト設定を使用します。`
+      );
+      return this.config;
+    }
   }
 
   /**
-   * モデルの初期化
+   * 初期化処理
+   * 設定を読み込み、ONNXモデルをロードし、推論セッションを作成します
+   *
+   * @param {ArrayBuffer} modelData モデルデータ
+   * @param {string} configPath 設定ファイルのパス（オプション）
+   * @returns {Promise<void>}
    */
-  async initialize(modelData) {
+  async initialize(modelData, configPath = null) {
     if (this.initialized) return;
 
     try {
-      this.session = await ort.InferenceSession.create(modelData, {
-        executionProviders: ["wasm"],
-        logSeverityLevel: 4,
-      });
+      // 設定ファイルを読み込む
+      if (configPath || this.configPath) {
+        await this.loadConfig(configPath);
+      }
+
+      this.session = await createSession(modelData);
+      console.log('モデルのロードが完了しました');
+
+      // 入力テンソルの形状を取得
+      try {
+        if (
+          this.session &&
+          this.session.inputNames &&
+          this.session.inputNames.length > 0
+        ) {
+          console.log(
+            `入力名: ${this.session.inputNames[0]}`
+          );
+          console.log(
+            `現在の入力形状: ${this.config.inputShape}`
+          );
+        }
+      } catch (shapeError) {
+        console.warn(
+          '入力形状の検出に失敗しました。デフォルト形状を使用します:',
+          shapeError
+        );
+      }
+
       this.initialized = true;
-      console.log("Text recognizer initialized successfully");
+      console.log('PARSEQ モデルの初期化が完了しました');
     } catch (error) {
-      console.error("Failed to initialize text recognizer:", error);
-      throw error;
+      console.error(
+        'PARSEQ モデルの初期化に失敗しました:',
+        error
+      );
+      throw new Error(
+        `PARSEQ モデルの初期化に失敗しました: ${error.message}`
+      );
     }
   }
 
@@ -238,27 +150,34 @@ export class TextRecognizer {
    */
   async recognize(imageData, region) {
     if (!this.initialized) {
-      throw new Error("Text recognizer not initialized");
+      throw new Error('Text recognizer not initialized');
     }
 
     try {
       // 1. 領域を切り出し
-      const croppedImageData = this.cropRegion(imageData, region);
+      const croppedImageData = this.cropRegion(
+        imageData,
+        region
+      );
 
       // 2. 前処理
-      const inputTensor = await this.preprocessImage(croppedImageData);
+      const inputTensor = await this.preprocessImage(
+        croppedImageData
+      );
 
       // 3. 推論実行
       const output = await this.runInference(inputTensor);
+      console.log('推論結果:', output);
 
       // 4. 後処理（テキストデコード）
       const result = this.decodeOutput(output);
+      console.log('認識結果:', result);
 
       return result;
     } catch (error) {
-      console.error("Text recognition failed:", error);
+      console.error('Text recognition failed:', error);
       return {
-        text: "",
+        text: '',
         confidence: 0.0,
         error: error.message,
       };
@@ -269,12 +188,18 @@ export class TextRecognizer {
    * 画像から指定領域を切り出し
    */
   cropRegion(imageData, region) {
-    const canvas = new OffscreenCanvas(region.width, region.height);
-    const ctx = canvas.getContext("2d");
+    const canvas = new OffscreenCanvas(
+      region.width,
+      region.height
+    );
+    const ctx = canvas.getContext('2d');
 
     // 元の画像をキャンバスに描画
-    const sourceCanvas = new OffscreenCanvas(imageData.width, imageData.height);
-    const sourceCtx = sourceCanvas.getContext("2d");
+    const sourceCanvas = new OffscreenCanvas(
+      imageData.width,
+      imageData.height
+    );
+    const sourceCtx = sourceCanvas.getContext('2d');
     sourceCtx.putImageData(imageData, 0, 0);
 
     // 指定領域を切り出し
@@ -290,77 +215,101 @@ export class TextRecognizer {
       region.height
     );
 
-    return ctx.getImageData(0, 0, region.width, region.height);
+    return ctx.getImageData(
+      0,
+      0,
+      region.width,
+      region.height
+    );
   }
 
   /**
-   * 画像の前処理
+   * 画像の前処理（参考版に基づく改良版）
+   *
+   * @param {ImageData} imageData 入力画像
+   * @returns {Float32Array} 前処理された画像データ
+   * @private
+   */
+  preprocess(imageData) {
+    const [batchSize, channels, height, width] =
+      this.config.inputShape;
+
+    // 画像サイズ取得
+    const imgWidth = imageData.width;
+    const imgHeight = imageData.height;
+
+    // キャンバス準備（回転含むので一旦大きめ）
+    const canvas = new OffscreenCanvas(1, 1);
+    const ctx = canvas.getContext('2d');
+    let rotated = false;
+
+    if (imgHeight > imgWidth) {
+      // 縦長画像は90度回転（時計回り）
+      canvas.width = imgHeight;
+      canvas.height = imgWidth;
+      ctx.translate(canvas.width / 2, canvas.height / 2);
+      ctx.rotate(-Math.PI / 2);
+      ctx.translate(-canvas.height / 2, -canvas.width / 2);
+      rotated = true;
+    } else {
+      canvas.width = imgWidth;
+      canvas.height = imgHeight;
+    }
+
+    // 描画
+    const tempCanvas = new OffscreenCanvas(
+      imageData.width,
+      imageData.height
+    );
+    const tempCtx = tempCanvas.getContext('2d');
+    tempCtx.putImageData(imageData, 0, 0);
+    ctx.drawImage(tempCanvas, 0, 0);
+
+    // 固定リサイズ（アスペクト比無視）→ Pythonと一致
+    const resizeCanvas = new OffscreenCanvas(width, height);
+    const resizeCtx = resizeCanvas.getContext('2d');
+    resizeCtx.drawImage(canvas, 0, 0, width, height);
+
+    const resizedImageData = resizeCtx.getImageData(
+      0,
+      0,
+      width,
+      height
+    );
+    const data = resizedImageData.data;
+
+    // Float32Arrayに変換（正規化: [-1, 1]）
+    const inputTensor = new Float32Array(
+      batchSize * channels * height * width
+    );
+
+    for (let h = 0; h < height; h++) {
+      for (let w = 0; w < width; w++) {
+        const pixelOffset = (h * width + w) * 4;
+        for (let c = 0; c < channels; c++) {
+          const value = data[pixelOffset + c] / 255.0;
+          const tensorIdx =
+            c * height * width + h * width + w;
+          inputTensor[tensorIdx] = 2.0 * (value - 0.5);
+        }
+      }
+    }
+
+    return inputTensor;
+  }
+
+  /**
+   * 画像の前処理（Wrapper）
    */
   async preprocessImage(imageData) {
     return new Promise((resolve, reject) => {
       try {
-        const canvas = new OffscreenCanvas(
-          this.inputSize.width,
-          this.inputSize.height
+        const tensor = this.preprocess(imageData);
+        const inputTensor = new ort.Tensor(
+          'float32',
+          tensor,
+          this.config.inputShape
         );
-        const ctx = canvas.getContext("2d");
-
-        // 元画像をキャンバスに復元
-        const sourceCanvas = new OffscreenCanvas(
-          imageData.width,
-          imageData.height
-        );
-        const sourceCtx = sourceCanvas.getContext("2d");
-        sourceCtx.putImageData(imageData, 0, 0);
-
-        // アスペクト比を保持してリサイズ
-        const scaleX = this.inputSize.width / imageData.width;
-        const scaleY = this.inputSize.height / imageData.height;
-        const scale = Math.min(scaleX, scaleY);
-
-        const newWidth = Math.round(imageData.width * scale);
-        const newHeight = Math.round(imageData.height * scale);
-
-        // 背景を白で塗りつぶし
-        ctx.fillStyle = "#FFFFFF";
-        ctx.fillRect(0, 0, this.inputSize.width, this.inputSize.height);
-
-        // 中央に配置
-        const offsetX = (this.inputSize.width - newWidth) / 2;
-        const offsetY = (this.inputSize.height - newHeight) / 2;
-
-        ctx.drawImage(sourceCanvas, offsetX, offsetY, newWidth, newHeight);
-
-        // ImageDataを取得
-        const resizedImageData = ctx.getImageData(
-          0,
-          0,
-          this.inputSize.width,
-          this.inputSize.height
-        );
-
-        // グレースケール化して正規化 [1, 1, H, W]
-        const tensor = new Float32Array(
-          1 * 1 * this.inputSize.height * this.inputSize.width
-        );
-        const { data } = resizedImageData;
-
-        for (let i = 0; i < this.inputSize.height * this.inputSize.width; i++) {
-          // RGBをグレースケールに変換して正規化 (0-255 -> 0-1)
-          const r = data[i * 4];
-          const g = data[i * 4 + 1];
-          const b = data[i * 4 + 2];
-          const gray = (r * 0.299 + g * 0.587 + b * 0.114) / 255.0;
-          tensor[i] = gray;
-        }
-
-        const inputTensor = new ort.Tensor("float32", tensor, [
-          1,
-          1,
-          this.inputSize.height,
-          this.inputSize.width,
-        ]);
-
         resolve(inputTensor);
       } catch (error) {
         reject(error);
@@ -372,59 +321,81 @@ export class TextRecognizer {
    * 推論実行
    */
   async runInference(inputTensor) {
-    // PARSeqモデルの入力名は通常 'images' または 'input'
-    const feeds = { images: inputTensor };
-    const results = await this.session.run(feeds);
-    return results;
+    const feeds = {};
+    feeds[this.session.inputNames[0]] = inputTensor;
+
+    // 推論実行
+    return await this.session.run(feeds);
   }
 
   /**
-   * 出力のデコード
+   * 認識結果の後処理（参考版完全準拠）
+   *
+   * @param {Object} outputs モデルの出力結果
+   * @returns {string} 認識されたテキスト
+   * @private
+   */
+  postprocess(outputs) {
+    console.log('後処理開始', outputs);
+    const outputNames = this.session.outputNames;
+    const rawLogits = outputs[outputNames[0]].data;
+    const logits = Array.from(rawLogits).map((value) =>
+      typeof value === 'bigint' ? Number(value) : value
+    );
+
+    const [batchSize, seqLength, vocabSize] =
+      outputs[outputNames[0]].dims;
+    const resultClassIds = [];
+
+    for (let i = 0; i < seqLength; i++) {
+      const scores = [];
+      for (let j = 0; j < vocabSize; j++) {
+        scores.push(logits[i * vocabSize + j]);
+      }
+
+      // 最大スコアとインデックスを取得
+      const maxScore = Math.max(...scores);
+      const maxIndex = scores.indexOf(maxScore);
+
+      // <eos> トークン（ID=0）が出たら終了（Pythonと一致）
+      if (maxIndex === 0) break;
+
+      // 特殊トークン（<s>, </s>, <pad>, <unk>）は除外
+      if (maxIndex < 4) continue;
+
+      resultClassIds.push(maxIndex - 1); // Pythonと同様に charlist の 0-index に合わせる
+    }
+    console.log('認識結果のクラスID:', resultClassIds);
+    // 文字リストから文字を取得
+    const resultText = [];
+
+    // 連続を除外して文字列を作成（参考版と完全一致）
+    let prevClassId = -1;
+    for (const classId of resultClassIds) {
+      if (classId !== prevClassId) {
+        resultText.push(this.config.charList[classId]);
+        prevClassId = classId;
+      }
+    }
+
+    return resultText.join('');
+  }
+
+  /**
+   * 出力のデコード（Wrapper）
    */
   decodeOutput(output) {
     try {
-      // PARSeqの出力形式に応じて処理
-      const outputKeys = Object.keys(output);
-      const logits = output[outputKeys[0]]; // 最初の出力テンソル
-
-      const outputData = logits.data;
-      const seqLength = logits.dims[1]; // シーケンス長
-      const vocabSize = logits.dims[2]; // 語彙サイズ
-
-      // 各位置で最も確率の高い文字を選択
-      const predictedIds = [];
-      const confidences = [];
-
-      for (let i = 0; i < seqLength; i++) {
-        let maxProb = -Infinity;
-        let maxIndex = 0;
-
-        for (let j = 0; j < vocabSize; j++) {
-          const prob = outputData[i * vocabSize + j];
-          if (prob > maxProb) {
-            maxProb = prob;
-            maxIndex = j;
-          }
-        }
-
-        predictedIds.push(maxIndex);
-        confidences.push(this.softmax(maxProb));
-      }
-
-      // IDを文字に変換
-      const text = this.idsToText(predictedIds);
-      const confidence =
-        confidences.reduce((sum, conf) => sum + conf, 0) / confidences.length;
-
+      const text = this.postprocess(output);
       return {
         text: text.trim(),
-        confidence: Math.min(Math.max(confidence, 0.0), 1.0),
-        rawPredictions: predictedIds,
+        confidence: 0.9, // 固定値（簡易実装）
+        rawPredictions: [],
       };
     } catch (error) {
-      console.error("Error decoding output:", error);
+      console.error('Error decoding output:', error);
       return {
-        text: "",
+        text: '',
         confidence: 0.0,
         error: error.message,
       };
@@ -432,26 +403,47 @@ export class TextRecognizer {
   }
 
   /**
-   * IDを文字列に変換
+   * 画像内のテキストを認識（参考版準拠のメインメソッド）
+   *
+   * @param {ImageData|HTMLImageElement|HTMLCanvasElement} imageData 入力画像
+   * @returns {Promise<string>} 認識されたテキスト
    */
-  idsToText(ids) {
-    let text = "";
-    let previousId = null;
-
-    for (const id of ids) {
-      // 特殊トークンをスキップ
-      if (id === 0 || id === 1) continue; // <blank>, <unk>
-      if (id === 2) break; // <s> (開始トークン)
-      if (id === 3) break; // </s> (終了トークン)
-
-      // 同じ文字の連続を避ける（CTC的な処理）
-      if (id !== previousId && this.vocabulary[id]) {
-        text += this.vocabulary[id];
-      }
-      previousId = id;
+  async read(imageData) {
+    if (!this.initialized) {
+      throw new Error(
+        'PARSEQ モデルが初期化されていません。initialize() を先に呼び出してください。'
+      );
     }
 
-    return text;
+    try {
+      // 前処理
+      const tensor = this.preprocess(imageData);
+
+      // 推論用の入力データを作成
+      const inputTensor = new ort.Tensor(
+        'float32',
+        tensor,
+        this.config.inputShape
+      );
+
+      const feeds = {};
+      feeds[this.session.inputNames[0]] = inputTensor;
+
+      // 推論実行
+      const outputs = await this.session.run(feeds);
+
+      // 後処理
+      const text = this.postprocess(outputs);
+      return text;
+    } catch (error) {
+      console.error(
+        '認識処理中にエラーが発生しました:',
+        error
+      );
+      throw new Error(
+        `認識処理に失敗しました: ${error.message}`
+      );
+    }
   }
 
   /**
@@ -470,7 +462,10 @@ export class TextRecognizer {
 
     for (let i = 0; i < regions.length; i++) {
       const region = regions[i];
-      const result = await this.recognize(imageData, region);
+      const result = await this.recognize(
+        imageData,
+        region
+      );
       results.push({
         ...region,
         text: result,

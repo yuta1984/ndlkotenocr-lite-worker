@@ -3,10 +3,8 @@
  */
 
 const MODEL_URLS = {
-  layout:
-    "https://github.com/yuta1984/ndlkotenocr-lite-web/raw/refs/heads/main/models/rtmdet-s-1280x1280.onnx",
-  recognition:
-    "https://github.com/yuta1984/ndlkotenocr-lite-web/raw/refs/heads/main/models/parseq-ndl-32x384-tiny-10.onnx",
+  layout: "/rtmdet-s-1280x1280.onnx",
+  recognition: "/parseq-ndl-32x384-tiny-10.onnx",
 };
 
 const DB_NAME = "NDLKotenOCRModels";
