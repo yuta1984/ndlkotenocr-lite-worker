@@ -2,10 +2,13 @@
  * NDLKotenOCR-Lite Worker メインエントリーポイント
  */
 
-import { workerMessageHandler } from "./utils/message-handler.js";
-import { FileHandler } from "./ui/file-handler.js";
-import { ResultDisplay } from "./ui/result-display.js";
-import { preloadAllModels, getCachedModels } from "./utils/model-loader.js";
+import { workerMessageHandler } from './utils/message-handler.js';
+import { FileHandler } from './ui/file-handler.js';
+import { ResultDisplay } from './ui/result-display.js';
+import {
+  preloadAllModels,
+  getCachedModels,
+} from './utils/model-loader.js';
 
 class NDLKotenOCRApp {
   constructor() {
@@ -20,7 +23,7 @@ class NDLKotenOCRApp {
    */
   async initialize() {
     try {
-      console.log("Initializing NDLKotenOCR Worker App...");
+      console.log('Initializing NDLKotenOCR Worker App...');
 
       // UI コンポーネントの初期化
       this.fileHandler = new FileHandler();
@@ -34,16 +37,19 @@ class NDLKotenOCRApp {
 
       // キャッシュされたモデルの確認
       const cachedModels = await getCachedModels();
-      console.log("Cached models:", cachedModels);
+      console.log('Cached models:', cachedModels);
 
       this.isInitialized = true;
       this.updateUI();
 
-      console.log("NDLKotenOCR Worker App initialized successfully");
+      console.log(
+        'NDLKotenOCR Worker App initialized successfully'
+      );
     } catch (error) {
-      console.error("Failed to initialize app:", error);
+      console.error('Failed to initialize app:', error);
       this.showError(
-        "アプリケーションの初期化に失敗しました: " + error.message
+        'アプリケーションの初期化に失敗しました: ' +
+          error.message
       );
     }
   }
@@ -53,22 +59,22 @@ class NDLKotenOCRApp {
    */
   setupEventListeners() {
     // ファイル選択/ドロップイベント
-    this.fileHandler.on("fileSelected", (file) => {
+    this.fileHandler.on('fileSelected', (file) => {
       this.processFile(file);
     });
 
     // Worker進捗イベント
-    workerMessageHandler.on("progress", (data) => {
+    workerMessageHandler.on('progress', (data) => {
       this.updateProgress(data);
     });
 
     // Worker完了イベント
-    workerMessageHandler.on("complete", (data) => {
+    workerMessageHandler.on('complete', (data) => {
       this.handleProcessingComplete(data);
     });
 
     // Workerエラーイベント
-    workerMessageHandler.on("error", (data) => {
+    workerMessageHandler.on('error', (data) => {
       this.handleProcessingError(data);
     });
 
@@ -81,25 +87,40 @@ class NDLKotenOCRApp {
    */
   setupUIEventListeners() {
     // モデル事前ダウンロードボタン
-    const preloadBtn = document.getElementById("preload-models");
+    const preloadBtn = document.getElementById(
+      'preload-models'
+    );
     if (preloadBtn) {
-      preloadBtn.addEventListener("click", () => {
+      preloadBtn.addEventListener('click', () => {
         this.preloadModels();
       });
     }
 
+    // サンプル使用ボタン
+    const sampleBtn = document.getElementById(
+      'use-sample-btn'
+    );
+    if (sampleBtn) {
+      sampleBtn.addEventListener('click', () => {
+        this.useSample();
+      });
+    }
+
     // 処理キャンセルボタン
-    const cancelBtn = document.getElementById("cancel-processing");
+    const cancelBtn = document.getElementById(
+      'cancel-processing'
+    );
     if (cancelBtn) {
-      cancelBtn.addEventListener("click", () => {
+      cancelBtn.addEventListener('click', () => {
         this.cancelProcessing();
       });
     }
 
     // 設定変更
-    const settingsForm = document.getElementById("settings-form");
+    const settingsForm =
+      document.getElementById('settings-form');
     if (settingsForm) {
-      settingsForm.addEventListener("change", (event) => {
+      settingsForm.addEventListener('change', (event) => {
         this.updateSettings(event);
       });
     }
@@ -110,17 +131,19 @@ class NDLKotenOCRApp {
    */
   async processFile(file) {
     if (!this.isInitialized) {
-      this.showError("アプリケーションが初期化されていません");
+      this.showError(
+        'アプリケーションが初期化されていません'
+      );
       return;
     }
 
     if (this.currentProcessing) {
-      this.showError("別の処理が実行中です");
+      this.showError('別の処理が実行中です');
       return;
     }
 
     try {
-      console.log("Processing file:", file.name);
+      console.log('Processing file:', file.name);
       this.currentProcessing = file;
 
       // ファイルを画像として読み込み
@@ -134,12 +157,17 @@ class NDLKotenOCRApp {
       this.resultDisplay.clear();
 
       // OCR処理を開始
-      const result = await workerMessageHandler.processOCR(imageData, config);
+      const result = await workerMessageHandler.processOCR(
+        imageData,
+        config
+      );
 
-      console.log("OCR processing completed:", result);
+      console.log('OCR processing completed:', result);
     } catch (error) {
-      console.error("File processing failed:", error);
-      this.showError("ファイル処理に失敗しました: " + error.message);
+      console.error('File processing failed:', error);
+      this.showError(
+        'ファイル処理に失敗しました: ' + error.message
+      );
     }
   }
 
@@ -155,8 +183,8 @@ class NDLKotenOCRApp {
 
         img.onload = () => {
           try {
-            const canvas = document.createElement("canvas");
-            const ctx = canvas.getContext("2d");
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
 
             canvas.width = img.width;
             canvas.height = img.height;
@@ -174,12 +202,15 @@ class NDLKotenOCRApp {
           }
         };
 
-        img.onerror = () => reject(new Error("画像の読み込みに失敗しました"));
+        img.onerror = () =>
+          reject(new Error('画像の読み込みに失敗しました'));
         img.src = event.target.result;
       };
 
       reader.onerror = () =>
-        reject(new Error("ファイルの読み込みに失敗しました"));
+        reject(
+          new Error('ファイルの読み込みに失敗しました')
+        );
       reader.readAsDataURL(file);
     });
   }
@@ -191,30 +222,31 @@ class NDLKotenOCRApp {
     const config = {
       outputFormats: [],
       readingOrder: {
-        direction: "vertical",
-        columnDirection: "right-to-left",
+        direction: 'vertical',
+        columnDirection: 'right-to-left',
       },
     };
 
     // UI からの設定を取得
-    const xmlOutput = document.getElementById("output-xml");
-    const jsonOutput = document.getElementById("output-json");
-    const txtOutput = document.getElementById("output-txt");
+    const xmlOutput = document.getElementById('output-xml');
+    const jsonOutput =
+      document.getElementById('output-json');
+    const txtOutput = document.getElementById('output-txt');
 
-    if (xmlOutput?.checked) config.outputFormats.push("xml");
-    if (jsonOutput?.checked) config.outputFormats.push("json");
-    if (txtOutput?.checked) config.outputFormats.push("txt");
+    if (xmlOutput?.checked)
+      config.outputFormats.push('xml');
+    if (jsonOutput?.checked)
+      config.outputFormats.push('json');
+    if (txtOutput?.checked)
+      config.outputFormats.push('txt');
 
     // デフォルトでテキスト出力を含める
     if (config.outputFormats.length === 0) {
-      config.outputFormats.push("txt");
+      config.outputFormats.push('txt');
     }
 
-    const direction = document.getElementById("reading-direction")?.value;
-    const columnDirection = document.getElementById("column-direction")?.value;
-
-    if (direction) config.readingOrder.direction = direction;
-    if (columnDirection) config.readingOrder.columnDirection = columnDirection;
+    // 読み方向と列方向は固定値（縦書き、右から左）
+    // UIからの設定は無視
 
     return config;
   }
@@ -226,19 +258,24 @@ class NDLKotenOCRApp {
     const { stage, progress, message } = data;
 
     console.log(
-      `Progress: ${stage} - ${Math.round(progress * 100)}% - ${message}`
+      `Progress: ${stage} - ${Math.round(
+        progress * 100
+      )}% - ${message}`
     );
 
     // プログレスバーの更新
-    const progressBar = document.getElementById("progress-bar");
-    const progressText = document.getElementById("progress-text");
+    const progressBar =
+      document.getElementById('progress-bar');
+    const progressText =
+      document.getElementById('progress-text');
 
     if (progressBar) {
       progressBar.value = progress * 100;
     }
 
     if (progressText) {
-      progressText.textContent = message || `${Math.round(progress * 100)}%`;
+      progressText.textContent =
+        message || `${Math.round(progress * 100)}%`;
     }
   }
 
@@ -246,9 +283,14 @@ class NDLKotenOCRApp {
    * 処理完了の処理
    */
   handleProcessingComplete(data) {
-    const { result } = data;
+    console.log(
+      'handleProcessingComplete received data:',
+      data
+    );
+    const result = data.result;
+    console.log('Extracted result:', result);
 
-    console.log("Processing completed successfully");
+    console.log('Processing completed successfully');
 
     // 結果を表示
     this.resultDisplay.displayResults(result);
@@ -258,7 +300,11 @@ class NDLKotenOCRApp {
     this.currentProcessing = null;
 
     this.showSuccess(
-      `OCR処理が完了しました。${result.totalRegions}個の領域から${result.successfulRecognitions}個のテキストを認識しました。`
+      `OCR処理が完了しました。${
+        result?.totalRegions || 'undefined'
+      }個の領域から${
+        result?.successfulRecognitions || 'undefined'
+      }個のテキストを認識しました。`
     );
   }
 
@@ -268,13 +314,13 @@ class NDLKotenOCRApp {
   handleProcessingError(data) {
     const { error } = data;
 
-    console.error("Processing failed:", error);
+    console.error('Processing failed:', error);
 
     // UI を通常状態に戻す
     this.updateProcessingState(false);
     this.currentProcessing = null;
 
-    this.showError("OCR処理に失敗しました: " + error);
+    this.showError('OCR処理に失敗しました: ' + error);
   }
 
   /**
@@ -282,20 +328,51 @@ class NDLKotenOCRApp {
    */
   async preloadModels() {
     try {
-      this.showInfo("モデルをダウンロード中...");
+      this.showInfo('モデルをダウンロード中...');
 
       await preloadAllModels((progress) => {
         this.updateProgress({
-          stage: "preload",
+          stage: 'preload',
           progress,
-          message: `モデルダウンロード中... ${Math.round(progress * 100)}%`,
+          message: `モデルダウンロード中... ${Math.round(
+            progress * 100
+          )}%`,
         });
       });
 
-      this.showSuccess("モデルのダウンロードが完了しました");
+      this.showSuccess(
+        'モデルのダウンロードが完了しました'
+      );
     } catch (error) {
-      console.error("Model preload failed:", error);
-      this.showError("モデルのダウンロードに失敗しました: " + error.message);
+      console.error('Model preload failed:', error);
+      this.showError(
+        'モデルのダウンロードに失敗しました: ' +
+          error.message
+      );
+    }
+  }
+
+  /**
+   * サンプル画像の使用
+   */
+  async useSample() {
+    try {
+      console.log('Loading sample image...');
+
+      if (this.fileHandler) {
+        await this.fileHandler.loadSampleImage();
+        this.showInfo('サンプル画像を読み込みました');
+      } else {
+        this.showError(
+          'ファイルハンドラーが初期化されていません'
+        );
+      }
+    } catch (error) {
+      console.error('Failed to use sample:', error);
+      this.showError(
+        'サンプル画像の読み込みに失敗しました: ' +
+          error.message
+      );
     }
   }
 
@@ -307,7 +384,7 @@ class NDLKotenOCRApp {
       workerMessageHandler.cancelCurrentTask();
       this.updateProcessingState(false);
       this.currentProcessing = null;
-      this.showInfo("処理をキャンセルしました");
+      this.showInfo('処理をキャンセルしました');
     }
   }
 
@@ -316,7 +393,11 @@ class NDLKotenOCRApp {
    */
   updateSettings(event) {
     const { target } = event;
-    console.log("Settings updated:", target.name, target.value);
+    console.log(
+      'Settings updated:',
+      target.name,
+      target.value
+    );
   }
 
   /**
@@ -324,25 +405,31 @@ class NDLKotenOCRApp {
    */
   updateProcessingState(isProcessing) {
     const elements = {
-      fileInput: document.getElementById("file-input"),
-      dropZone: document.getElementById("drop-zone"),
-      processBtn: document.getElementById("process-btn"),
-      cancelBtn: document.getElementById("cancel-processing"),
-      progressContainer: document.getElementById("progress-container"),
+      fileInput: document.getElementById('file-input'),
+      dropZone: document.getElementById('drop-zone'),
+      processBtn: document.getElementById('process-btn'),
+      cancelBtn: document.getElementById(
+        'cancel-processing'
+      ),
+      progressContainer: document.getElementById(
+        'progress-container'
+      ),
     };
 
     if (isProcessing) {
-      elements.fileInput?.setAttribute("disabled", "");
-      elements.dropZone?.classList.add("disabled");
-      elements.processBtn?.setAttribute("disabled", "");
-      elements.cancelBtn?.removeAttribute("disabled");
-      elements.progressContainer?.classList.remove("hidden");
+      elements.fileInput?.setAttribute('disabled', '');
+      elements.dropZone?.classList.add('disabled');
+      elements.processBtn?.setAttribute('disabled', '');
+      elements.cancelBtn?.removeAttribute('disabled');
+      elements.progressContainer?.classList.remove(
+        'hidden'
+      );
     } else {
-      elements.fileInput?.removeAttribute("disabled");
-      elements.dropZone?.classList.remove("disabled");
-      elements.processBtn?.removeAttribute("disabled");
-      elements.cancelBtn?.setAttribute("disabled", "");
-      elements.progressContainer?.classList.add("hidden");
+      elements.fileInput?.removeAttribute('disabled');
+      elements.dropZone?.classList.remove('disabled');
+      elements.processBtn?.removeAttribute('disabled');
+      elements.cancelBtn?.setAttribute('disabled', '');
+      elements.progressContainer?.classList.add('hidden');
     }
   }
 
@@ -350,14 +437,15 @@ class NDLKotenOCRApp {
    * UI状態の更新
    */
   updateUI() {
-    const statusElement = document.getElementById("app-status");
+    const statusElement =
+      document.getElementById('app-status');
     if (statusElement) {
       statusElement.textContent = this.isInitialized
-        ? "準備完了"
-        : "初期化中...";
+        ? '準備完了'
+        : '初期化中...';
       statusElement.className = this.isInitialized
-        ? "status-ready"
-        : "status-loading";
+        ? 'status-ready'
+        : 'status-loading';
     }
   }
 
@@ -365,38 +453,40 @@ class NDLKotenOCRApp {
    * メッセージ表示（成功）
    */
   showSuccess(message) {
-    this.showMessage(message, "success");
+    this.showMessage(message, 'success');
   }
 
   /**
    * メッセージ表示（エラー）
    */
   showError(message) {
-    this.showMessage(message, "error");
+    this.showMessage(message, 'error');
   }
 
   /**
    * メッセージ表示（情報）
    */
   showInfo(message) {
-    this.showMessage(message, "info");
+    this.showMessage(message, 'info');
   }
 
   /**
    * メッセージ表示
    */
-  showMessage(message, type = "info") {
+  showMessage(message, type = 'info') {
     console.log(`[${type.toUpperCase()}]`, message);
 
-    const messageElement = document.getElementById("message-display");
+    const messageElement = document.getElementById(
+      'message-display'
+    );
     if (messageElement) {
       messageElement.textContent = message;
       messageElement.className = `message message-${type}`;
-      messageElement.classList.remove("hidden");
+      messageElement.classList.remove('hidden');
 
       // 5秒後に自動で隠す
       setTimeout(() => {
-        messageElement.classList.add("hidden");
+        messageElement.classList.add('hidden');
       }, 5000);
     }
   }
@@ -421,9 +511,9 @@ class NDLKotenOCRApp {
 export const app = new NDLKotenOCRApp();
 
 // DOMContentLoaded で初期化
-if (typeof document !== "undefined") {
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", () => {
+if (typeof document !== 'undefined') {
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
       app.initialize();
     });
   } else {
@@ -432,8 +522,8 @@ if (typeof document !== "undefined") {
 }
 
 // ページアンロード時のクリーンアップ
-if (typeof window !== "undefined") {
-  window.addEventListener("beforeunload", () => {
+if (typeof window !== 'undefined') {
+  window.addEventListener('beforeunload', () => {
     app.dispose();
   });
 }

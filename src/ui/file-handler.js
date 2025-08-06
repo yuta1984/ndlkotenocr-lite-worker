@@ -7,11 +7,11 @@ export class FileHandler {
   constructor() {
     this.eventListeners = new Map();
     this.acceptedTypes = [
-      "image/jpeg",
-      "image/jpg",
-      "image/png",
-      "image/gif",
-      "image/bmp",
+      'image/jpeg',
+      'image/jpg',
+      'image/png',
+      'image/gif',
+      'image/bmp',
     ];
     this.maxFileSize = 50 * 1024 * 1024; // 50MB
     this.setupElements();
@@ -21,9 +21,9 @@ export class FileHandler {
    * DOM要素の設定
    */
   setupElements() {
-    this.fileInput = document.getElementById("file-input");
-    this.dropZone = document.getElementById("drop-zone");
-    this.fileInfo = document.getElementById("file-info");
+    this.fileInput = document.getElementById('file-input');
+    this.dropZone = document.getElementById('drop-zone');
+    this.fileInfo = document.getElementById('file-info');
 
     if (this.fileInput) {
       this.setupFileInput();
@@ -38,7 +38,7 @@ export class FileHandler {
    * ファイル入力の設定
    */
   setupFileInput() {
-    this.fileInput.addEventListener("change", (event) => {
+    this.fileInput.addEventListener('change', (event) => {
       const file = event.target.files[0];
       if (file) {
         this.handleFile(file);
@@ -46,7 +46,7 @@ export class FileHandler {
     });
 
     // ファイル入力の属性設定
-    this.fileInput.accept = this.acceptedTypes.join(",");
+    this.fileInput.accept = this.acceptedTypes.join(',');
   }
 
   /**
@@ -54,26 +54,36 @@ export class FileHandler {
    */
   setupDropZone() {
     // ドラッグイベントのデフォルト動作を防止
-    ["dragenter", "dragover", "dragleave", "drop"].forEach((eventName) => {
-      this.dropZone.addEventListener(eventName, this.preventDefaults, false);
-      document.body.addEventListener(eventName, this.preventDefaults, false);
-    });
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(
+      (eventName) => {
+        this.dropZone.addEventListener(
+          eventName,
+          this.preventDefaults,
+          false
+        );
+        document.body.addEventListener(
+          eventName,
+          this.preventDefaults,
+          false
+        );
+      }
+    );
 
     // ドラッグ開始/終了時の視覚的フィードバック
-    ["dragenter", "dragover"].forEach((eventName) => {
+    ['dragenter', 'dragover'].forEach((eventName) => {
       this.dropZone.addEventListener(eventName, () => {
-        this.dropZone.classList.add("drag-over");
+        this.dropZone.classList.add('drag-over');
       });
     });
 
-    ["dragleave", "drop"].forEach((eventName) => {
+    ['dragleave', 'drop'].forEach((eventName) => {
       this.dropZone.addEventListener(eventName, () => {
-        this.dropZone.classList.remove("drag-over");
+        this.dropZone.classList.remove('drag-over');
       });
     });
 
     // ファイルドロップ処理
-    this.dropZone.addEventListener("drop", (event) => {
+    this.dropZone.addEventListener('drop', (event) => {
       const files = event.dataTransfer.files;
       if (files.length > 0) {
         this.handleFile(files[0]);
@@ -81,7 +91,7 @@ export class FileHandler {
     });
 
     // クリックでファイル選択ダイアログを開く
-    this.dropZone.addEventListener("click", () => {
+    this.dropZone.addEventListener('click', () => {
       if (this.fileInput && !this.fileInput.disabled) {
         this.fileInput.click();
       }
@@ -100,7 +110,12 @@ export class FileHandler {
    * ファイル処理
    */
   handleFile(file) {
-    console.log("File selected:", file.name, file.type, file.size);
+    console.log(
+      'File selected:',
+      file.name,
+      file.type,
+      file.size
+    );
 
     // ファイル検証
     const validation = this.validateFile(file);
@@ -113,7 +128,7 @@ export class FileHandler {
     this.displayFileInfo(file);
 
     // ファイル選択イベントを発火
-    this.emit("fileSelected", file);
+    this.emit('fileSelected', file);
   }
 
   /**
@@ -125,14 +140,16 @@ export class FileHandler {
       return {
         isValid: false,
         error: `サポートされていないファイル形式です。対応形式: ${this.acceptedTypes.join(
-          ", "
+          ', '
         )}`,
       };
     }
 
     // ファイルサイズチェック
     if (file.size > this.maxFileSize) {
-      const maxSizeMB = Math.round(this.maxFileSize / (1024 * 1024));
+      const maxSizeMB = Math.round(
+        this.maxFileSize / (1024 * 1024)
+      );
       return {
         isValid: false,
         error: `ファイルサイズが大きすぎます。最大サイズ: ${maxSizeMB}MB`,
@@ -156,7 +173,9 @@ export class FileHandler {
 
     this.fileInfo.innerHTML = `
       <div class="file-info-item">
-        <strong>ファイル名:</strong> ${this.escapeHtml(file.name)}
+        <strong>ファイル名:</strong> ${this.escapeHtml(
+          file.name
+        )}
       </div>
       <div class="file-info-item">
         <strong>ファイルサイズ:</strong> ${sizeText}
@@ -171,14 +190,14 @@ export class FileHandler {
       </div>
     `;
 
-    this.fileInfo.classList.remove("hidden");
+    this.fileInfo.classList.remove('hidden');
   }
 
   /**
    * HTMLエスケープ
    */
   escapeHtml(text) {
-    const div = document.createElement("div");
+    const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
   }
@@ -187,20 +206,22 @@ export class FileHandler {
    * エラー表示
    */
   showError(message) {
-    console.error("File handler error:", message);
+    console.error('File handler error:', message);
 
     // カスタムエラーイベントを発火
-    this.emit("error", { message });
+    this.emit('error', { message });
 
     // メッセージ要素があれば表示
-    const messageElement = document.getElementById("message-display");
+    const messageElement = document.getElementById(
+      'message-display'
+    );
     if (messageElement) {
       messageElement.textContent = message;
-      messageElement.className = "message message-error";
-      messageElement.classList.remove("hidden");
+      messageElement.className = 'message message-error';
+      messageElement.classList.remove('hidden');
 
       setTimeout(() => {
-        messageElement.classList.add("hidden");
+        messageElement.classList.add('hidden');
       }, 5000);
     }
   }
@@ -210,12 +231,12 @@ export class FileHandler {
    */
   clearFileInfo() {
     if (this.fileInfo) {
-      this.fileInfo.classList.add("hidden");
-      this.fileInfo.innerHTML = "";
+      this.fileInfo.classList.add('hidden');
+      this.fileInfo.innerHTML = '';
     }
 
     if (this.fileInput) {
-      this.fileInput.value = "";
+      this.fileInput.value = '';
     }
   }
 
@@ -225,9 +246,9 @@ export class FileHandler {
   setEnabled(enabled) {
     if (this.dropZone) {
       if (enabled) {
-        this.dropZone.classList.remove("disabled");
+        this.dropZone.classList.remove('disabled');
       } else {
-        this.dropZone.classList.add("disabled");
+        this.dropZone.classList.add('disabled');
       }
     }
 
@@ -240,7 +261,8 @@ export class FileHandler {
    * 画像プレビューの表示
    */
   showImagePreview(file) {
-    const previewContainer = document.getElementById("image-preview");
+    const previewContainer =
+      document.getElementById('image-preview');
     if (!previewContainer) return;
 
     const reader = new FileReader();
@@ -248,7 +270,7 @@ export class FileHandler {
       previewContainer.innerHTML = `
         <img src="${event.target.result}" alt="プレビュー" style="max-width: 100%; max-height: 300px; object-fit: contain;">
       `;
-      previewContainer.classList.remove("hidden");
+      previewContainer.classList.remove('hidden');
     };
     reader.readAsDataURL(file);
   }
@@ -257,10 +279,11 @@ export class FileHandler {
    * プレビューをクリア
    */
   clearPreview() {
-    const previewContainer = document.getElementById("image-preview");
+    const previewContainer =
+      document.getElementById('image-preview');
     if (previewContainer) {
-      previewContainer.innerHTML = "";
-      previewContainer.classList.add("hidden");
+      previewContainer.innerHTML = '';
+      previewContainer.classList.add('hidden');
     }
   }
 
@@ -276,16 +299,19 @@ export class FileHandler {
       if (validation.isValid) {
         validFiles.push(file);
       } else {
-        errors.push({ file: file.name, error: validation.error });
+        errors.push({
+          file: file.name,
+          error: validation.error,
+        });
       }
     }
 
     if (errors.length > 0) {
-      console.warn("Some files were rejected:", errors);
+      console.warn('Some files were rejected:', errors);
     }
 
     if (validFiles.length > 0) {
-      this.emit("filesSelected", validFiles);
+      this.emit('filesSelected', validFiles);
     }
   }
 
@@ -322,9 +348,48 @@ export class FileHandler {
         try {
           callback(data);
         } catch (error) {
-          console.error("Error in file handler event listener:", error);
+          console.error(
+            'Error in file handler event listener:',
+            error
+          );
         }
       });
+    }
+  }
+
+  /**
+   * サンプル画像を読み込み
+   */
+  async loadSampleImage() {
+    try {
+      // サンプル画像のパスを取得
+      const samplePath = './sample.png';
+
+      // fetch でサンプル画像を取得
+      const response = await fetch(samplePath);
+      if (!response.ok) {
+        throw new Error('サンプル画像が見つかりません');
+      }
+
+      // Blob として取得
+      const blob = await response.blob();
+
+      // File オブジェクトを作成
+      const file = new File([blob], 'sample.png', {
+        type: 'image/png',
+        lastModified: Date.now(),
+      });
+
+      // 通常のファイル処理と同じ処理を実行
+      this.handleFile(file);
+
+      console.log('Sample image loaded successfully');
+    } catch (error) {
+      console.error('Failed to load sample image:', error);
+      this.showError(
+        'サンプル画像の読み込みに失敗しました: ' +
+          error.message
+      );
     }
   }
 

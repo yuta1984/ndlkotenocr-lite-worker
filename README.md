@@ -76,14 +76,14 @@ ndlkotenocr-worker/
 1. テストページ（`test/index.html`）を開く
 2. 「モデル事前ダウンロード」で必要なモデルをダウンロード（初回のみ）
 3. 画像ファイルをドラッグ&ドロップまたは選択
-4. 設定（読み方向、出力形式など）を調整
+4. 設定（出力形式など）を調整
 5. 「OCR 実行」ボタンで OCR 処理を開始
 6. 結果を確認・ダウンロード
 
 ### プログラムから使用
 
 ```javascript
-import { app } from "./src/main.js";
+import { app } from './src/main.js';
 
 // アプリケーションの初期化
 await app.initialize();
@@ -96,26 +96,19 @@ const file = // File オブジェクト
 ### Web Worker 直接使用
 
 ```javascript
-import { workerMessageHandler } from "./src/utils/message-handler.js";
+import { workerMessageHandler } from './src/utils/message-handler.js';
 
 // Worker初期化
 await workerMessageHandler.initializeWorker();
 
 // OCR処理
-const result = await workerMessageHandler.processOCR(imageData, config);
+const result = await workerMessageHandler.processOCR(
+  imageData,
+  config
+);
 ```
 
 ## 設定オプション
-
-### 読み方向
-
-- `vertical`: 縦書き（デフォルト）
-- `horizontal`: 横書き
-
-### 列方向
-
-- `right-to-left`: 右から左（古典籍用、デフォルト）
-- `left-to-right`: 左から右
 
 ### 出力形式
 
@@ -132,16 +125,19 @@ const result = await workerMessageHandler.processOCR(imageData, config);
 await workerMessageHandler.initializeWorker();
 
 // OCR処理
-const result = await workerMessageHandler.processOCR(imageData, {
-  outputFormats: ["txt", "json", "xml"],
-  readingOrder: {
-    direction: "vertical",
-    columnDirection: "right-to-left",
-  },
-});
+const result = await workerMessageHandler.processOCR(
+  imageData,
+  {
+    outputFormats: ['txt', 'json', 'xml'],
+    readingOrder: {
+      direction: 'vertical',
+      columnDirection: 'right-to-left',
+    },
+  }
+);
 
 // 進捗監視
-workerMessageHandler.on("progress", (data) => {
+workerMessageHandler.on('progress', (data) => {
   console.log(`Progress: ${data.progress * 100}%`);
 });
 ```
@@ -152,8 +148,8 @@ workerMessageHandler.on("progress", (data) => {
 const fileHandler = new FileHandler();
 
 // ファイル選択イベント
-fileHandler.on("fileSelected", (file) => {
-  console.log("File selected:", file.name);
+fileHandler.on('fileSelected', (file) => {
+  console.log('File selected:', file.name);
 });
 ```
 
@@ -166,7 +162,7 @@ const resultDisplay = new ResultDisplay();
 resultDisplay.displayResults(ocrResult);
 
 // 結果ダウンロード
-resultDisplay.downloadResult("txt");
+resultDisplay.downloadResult('txt');
 ```
 
 ## 対応ファイル形式

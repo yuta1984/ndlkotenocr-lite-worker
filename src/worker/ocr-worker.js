@@ -192,7 +192,10 @@ class OCRWorker {
       };
       console.log('最終結果:', result);
 
-      // 出力形式の生成
+      // テキスト出力は常に生成（UIで必要なため）
+      result.txt = this.generateTextOutput(orderedResults);
+
+      // その他の出力形式の生成
       if (config.outputFormats) {
         if (config.outputFormats.includes('xml')) {
           result.xml =
@@ -202,16 +205,12 @@ class OCRWorker {
           result.json =
             this.generateJSONOutput(orderedResults);
         }
-        if (config.outputFormats.includes('txt')) {
-          result.txt =
-            this.generateTextOutput(orderedResults);
-        }
       }
 
       this.postMessage({
         type: 'OCR_COMPLETE',
         id,
-        result,
+        ...result,
       });
     } catch (error) {
       this.postMessage({
