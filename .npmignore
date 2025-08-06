@@ -1,0 +1,24 @@
+# 開発・テスト用ファイル
+test/
+src/
+vite.config.js
+*.config.js
+.vscode/
+.env*
+
+# ビルド時の一時ファイル
+node_modules/
+*.log
+*.lock
+
+# Git関連
+.git/
+.gitignore
+.github/
+
+# その他
+*.md
+!README.md
+models/
+prompt.md
+*.code-workspace

@@ -1,44 +1,50 @@
-import { defineConfig } from "vite";
+import { defineConfig } from 'vite';
 
 export default defineConfig({
   build: {
-    target: "esnext",
+    target: 'esnext',
     lib: {
-      entry: "src/main.js",
-      name: "NDLKotenOCRWorker",
-      formats: ["es"],
+      entry: {
+        index: 'src/main.js',
+        'worker/ocr-worker': 'src/worker/ocr-worker.js',
+      },
+      name: 'NDLKotenOCRWorker',
+      formats: ['es'],
     },
     rollupOptions: {
       output: {
-        format: "es",
+        format: 'es',
+        entryFileNames: '[name].js',
+        chunkFileNames: 'chunks/[name]-[hash].js',
       },
+      external: [], // すべての依存関係をバンドルに含める
     },
     copyPublicDir: true,
   },
   server: {
     headers: {
-      "Cross-Origin-Opener-Policy": "same-origin",
-      "Cross-Origin-Embedder-Policy": "require-corp",
-      "Cross-Origin-Resource-Policy": "cross-origin",
+      'Cross-Origin-Opener-Policy': 'same-origin',
+      'Cross-Origin-Embedder-Policy': 'require-corp',
+      'Cross-Origin-Resource-Policy': 'cross-origin',
     },
     fs: {
-      allow: ["..", "models", "node_modules"],
+      allow: ['..', 'models', 'node_modules'],
     },
     mimeTypes: {
-      "application/wasm": ["wasm"],
+      'application/wasm': ['wasm'],
     },
   },
   optimizeDeps: {
-    exclude: ["onnxruntime-web"],
-    include: ["onnxruntime-web > long"],
+    exclude: ['onnxruntime-web'],
+    include: ['onnxruntime-web > long'],
   },
   worker: {
-    format: "es",
+    format: 'es',
     plugins: () => [],
   },
-  publicDir: "models",
-  assetsInclude: ["**/*.onnx", "**/*.wasm"],
+  publicDir: 'models',
+  assetsInclude: ['**/*.onnx', '**/*.wasm'],
   define: {
-    global: "globalThis",
+    global: 'globalThis',
   },
 });

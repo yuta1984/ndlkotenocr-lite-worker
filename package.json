@@ -3,11 +3,29 @@
   "version": "1.0.0",
   "description": "NDLKotenOCR Web版のWeb Worker対応版",
   "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./types/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js"
+    },
+    "./worker": {
+      "import": "./dist/worker/ocr-worker.js"
+    }
+  },
+  "files": [
+    "dist",
+    "config",
+    "types",
+    "README.md"
+  ],
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "test": "vite --config vite.test.config.js"
+    "test": "vite --config vite.test.config.js",
+    "prepublishOnly": "npm run build"
   },
   "dependencies": {
     "js-yaml": "^4.1.0",
@@ -21,8 +39,23 @@
     "ndl",
     "web-worker",
     "onnx",
-    "classical-japanese"
+    "classical-japanese",
+    "machine-learning",
+    "text-recognition",
+    "layout-detection",
+    "japanese-ocr"
   ],
   "author": "yuta1984",
-  "license": "CC-BY-4.0"
+  "license": "CC-BY-4.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yuta1984/ndlkotenocr-lite-worker.git"
+  },
+  "bugs": {
+    "url": "https://github.com/yuta1984/ndlkotenocr-lite-worker/issues"
+  },
+  "homepage": "https://github.com/yuta1984/ndlkotenocr-lite-worker#readme",
+  "engines": {
+    "node": ">=16.0.0"
+  }
 }
