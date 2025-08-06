@@ -1,6 +1,14 @@
 # NDLKotenOCR Web版 設定ファイル
 # このファイルは、OCRの動作設定を定義します
 
+# モデルファイル設定
+models:
+  # レイアウト検出モデル
+  layout: 'https://honkoku.org/models/rtmdet-s-1280x1280.onnx'
+
+  # 文字認識モデル
+  recognition: 'https://honkoku.org/models/parseq-ndl-32x384-tiny-10.onnx'
+
 # レイアウト認識設定
 layout_detection:
   # スコアの閾値（0.0-1.0）

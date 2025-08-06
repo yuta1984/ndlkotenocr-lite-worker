@@ -2,14 +2,11 @@
  * モデルファイルのダウンロード・キャッシュ管理モジュール
  */
 
-const MODEL_URLS = {
-  layout: "/rtmdet-s-1280x1280.onnx",
-  recognition: "/parseq-ndl-32x384-tiny-10.onnx",
-};
+import { getModelUrl } from './config-loader.js';
 
-const DB_NAME = "NDLKotenOCRModels";
+const DB_NAME = 'NDLKotenOCRModels';
 const DB_VERSION = 1;
-const STORE_NAME = "models";
+const STORE_NAME = 'models';
 
 /**
  * IndexedDBの初期化
@@ -24,7 +21,9 @@ function initDB() {
     request.onupgradeneeded = (event) => {
       const db = event.target.result;
       if (!db.objectStoreNames.contains(STORE_NAME)) {
-        db.createObjectStore(STORE_NAME, { keyPath: "name" });
+        db.createObjectStore(STORE_NAME, {
+          keyPath: 'name',
+        });
       }
     };
   });
@@ -36,7 +35,10 @@ function initDB() {
 async function getModelFromCache(modelName) {
   const db = await initDB();
   return new Promise((resolve, reject) => {
-    const transaction = db.transaction([STORE_NAME], "readonly");
+    const transaction = db.transaction(
+      [STORE_NAME],
+      'readonly'
+    );
     const store = transaction.objectStore(STORE_NAME);
     const request = store.get(modelName);
 
@@ -51,7 +53,10 @@ async function getModelFromCache(modelName) {
 async function saveModelToCache(modelName, data) {
   const db = await initDB();
   return new Promise((resolve, reject) => {
-    const transaction = db.transaction([STORE_NAME], "readwrite");
+    const transaction = db.transaction(
+      [STORE_NAME],
+      'readwrite'
+    );
     const store = transaction.objectStore(STORE_NAME);
     const request = store.put({ name: modelName, data });
 
@@ -67,11 +72,13 @@ async function downloadWithProgress(url, onProgress) {
   const response = await fetch(url);
 
   if (!response.ok) {
-    throw new Error(`HTTP error! status: ${response.status}`);
+    throw new Error(
+      `HTTP error! status: ${response.status}`
+    );
   }
 
   const contentLength = parseInt(
-    response.headers.get("content-length") || "0",
+    response.headers.get('content-length') || '0',
     10
   );
   let receivedLength = 0;
@@ -106,7 +113,11 @@ async function downloadWithProgress(url, onProgress) {
  * モデルファイルを読み込み（キャッシュ優先）
  */
 export async function loadModel(modelType, onProgress) {
-  if (!MODEL_URLS[modelType]) {
+  // 設定からモデルURLを取得
+  let modelUrl;
+  try {
+    modelUrl = await getModelUrl(modelType);
+  } catch (error) {
     throw new Error(`Unknown model type: ${modelType}`);
   }
 
@@ -119,9 +130,11 @@ export async function loadModel(modelType, onProgress) {
   }
 
   // ダウンロード
-  console.log(`Downloading model ${modelType} from ${MODEL_URLS[modelType]}`);
+  console.log(
+    `Downloading model ${modelType} from ${modelUrl}`
+  );
   const modelData = await downloadWithProgress(
-    MODEL_URLS[modelType],
+    modelUrl,
     onProgress
   );
 
@@ -136,12 +149,18 @@ export async function loadModel(modelType, onProgress) {
  * 全モデルの事前ダウンロード
  */
 export async function preloadAllModels(onProgress) {
-  const modelTypes = Object.keys(MODEL_URLS);
+  // 設定からモデル一覧を取得
+  const { getModelUrls } = await import(
+    './config-loader.js'
+  );
+  const modelUrls = await getModelUrls();
+  const modelTypes = Object.keys(modelUrls);
   const totalModels = modelTypes.length;
   let completedModels = 0;
 
   const updateProgress = (modelProgress) => {
-    const totalProgress = (completedModels + modelProgress) / totalModels;
+    const totalProgress =
+      (completedModels + modelProgress) / totalModels;
     if (onProgress) onProgress(totalProgress);
   };
 
@@ -157,7 +176,10 @@ export async function preloadAllModels(onProgress) {
 export async function getCachedModels() {
   const db = await initDB();
   return new Promise((resolve, reject) => {
-    const transaction = db.transaction([STORE_NAME], "readonly");
+    const transaction = db.transaction(
+      [STORE_NAME],
+      'readonly'
+    );
     const store = transaction.objectStore(STORE_NAME);
     const request = store.getAllKeys();
 
@@ -172,7 +194,10 @@ export async function getCachedModels() {
 export async function clearCache() {
   const db = await initDB();
   return new Promise((resolve, reject) => {
-    const transaction = db.transaction([STORE_NAME], "readwrite");
+    const transaction = db.transaction(
+      [STORE_NAME],
+      'readwrite'
+    );
     const store = transaction.objectStore(STORE_NAME);
     const request = store.clear();
 
