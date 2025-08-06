@@ -121,6 +121,7 @@ class OCRWorker {
           });
         }
       );
+      console.log('検出されたテキスト領域:', textRegions);
 
       // Stage 2: 文字認識
       this.postMessage({
@@ -134,6 +135,7 @@ class OCRWorker {
       const recognitionResults = [];
       for (let i = 0; i < textRegions.length; i++) {
         const region = textRegions[i];
+        const confidence = region.confidence || 0.0;
         const text = await this.textRecognizer.recognize(
           imageData,
           region
@@ -142,7 +144,7 @@ class OCRWorker {
         recognitionResults.push({
           ...region,
           text,
-          confidence: text.confidence || 0.0,
+          confidence,
         });
 
         this.postMessage({

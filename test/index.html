@@ -140,6 +140,44 @@
         margin-bottom: 0.5rem;
       }
 
+      .image-preview-container {
+        border: 2px solid #e2e8f0;
+        border-radius: 8px;
+        padding: 1rem;
+        background: #f8fafc;
+        text-align: center;
+        height: fit-content;
+      }
+
+      .image-preview-container.hidden {
+        display: none;
+      }
+
+      .image-preview-container img {
+        max-width: 100%;
+        max-height: 300px;
+        object-fit: contain;
+        border-radius: 4px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      }
+
+      .preview-placeholder {
+        color: #718096;
+        font-style: italic;
+        padding: 2rem 0;
+      }
+
+      .result-content-image {
+        text-align: center;
+        padding: 1rem;
+      }
+
+      .result-content-image img {
+        max-width: 100%;
+        border-radius: 8px;
+        box-shadow: 0 2px 15px rgba(0, 0, 0, 0.1);
+      }
+
       .settings-form {
         display: grid;
         gap: 1rem;
@@ -506,44 +544,17 @@
           </div>
         </div>
 
-        <!-- 設定セクション -->
+        <!-- 画像プレビューセクション -->
         <div class="card">
-          <h2>⚙️ 設定</h2>
-          <form id="settings-form" class="settings-form">
-            <div class="form-group">
-              <label>出力形式:</label>
-              <div class="checkbox-group">
-                <div class="checkbox-item">
-                  <input
-                    type="checkbox"
-                    id="output-txt"
-                    name="output-format"
-                    value="txt"
-                    checked
-                  />
-                  <label for="output-txt">テキスト</label>
-                </div>
-                <div class="checkbox-item">
-                  <input
-                    type="checkbox"
-                    id="output-json"
-                    name="output-format"
-                    value="json"
-                  />
-                  <label for="output-json">JSON</label>
-                </div>
-                <div class="checkbox-item">
-                  <input
-                    type="checkbox"
-                    id="output-xml"
-                    name="output-format"
-                    value="xml"
-                  />
-                  <label for="output-xml">XML</label>
-                </div>
-              </div>
+          <h2>🖼️ 画像プレビュー</h2>
+          <div
+            id="image-preview"
+            class="image-preview-container hidden"
+          >
+            <div class="preview-placeholder">
+              選択した画像がここに表示されます
             </div>
-          </form>
+          </div>
         </div>
       </div>
 
@@ -565,6 +576,9 @@
           <button class="tab-button" data-tab="blocks">
             ブロック詳細
           </button>
+          <button class="tab-button" data-tab="image">
+            画像（bbox付き）
+          </button>
           <button class="tab-button" data-tab="json">
             JSON
           </button>
@@ -581,6 +595,14 @@
             class="tab-content hidden"
           >
             <div id="text-blocks"></div>
+          </div>
+          <div id="result-image" class="tab-content hidden">
+            <div
+              class="result-content-image"
+              id="bbox-image-container"
+            >
+              <p>bbox描画画像がここに表示されます</p>
+            </div>
           </div>
           <div
             id="result-json"

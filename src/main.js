@@ -115,15 +115,6 @@ class NDLKotenOCRApp {
         this.cancelProcessing();
       });
     }
-
-    // 設定変更
-    const settingsForm =
-      document.getElementById('settings-form');
-    if (settingsForm) {
-      settingsForm.addEventListener('change', (event) => {
-        this.updateSettings(event);
-      });
-    }
   }
 
   /**
@@ -155,6 +146,9 @@ class NDLKotenOCRApp {
       // UI を処理中状態に更新
       this.updateProcessingState(true);
       this.resultDisplay.clear();
+
+      // 画像データをResultDisplayに渡す（clearの後に設定）
+      this.resultDisplay.setOriginalImageData(imageData);
 
       // OCR処理を開始
       const result = await workerMessageHandler.processOCR(
@@ -220,33 +214,15 @@ class NDLKotenOCRApp {
    */
   getProcessingConfig() {
     const config = {
-      outputFormats: [],
+      outputFormats: ['txt', 'json', 'xml'],
       readingOrder: {
         direction: 'vertical',
         columnDirection: 'right-to-left',
       },
     };
 
-    // UI からの設定を取得
-    const xmlOutput = document.getElementById('output-xml');
-    const jsonOutput =
-      document.getElementById('output-json');
-    const txtOutput = document.getElementById('output-txt');
-
-    if (xmlOutput?.checked)
-      config.outputFormats.push('xml');
-    if (jsonOutput?.checked)
-      config.outputFormats.push('json');
-    if (txtOutput?.checked)
-      config.outputFormats.push('txt');
-
-    // デフォルトでテキスト出力を含める
-    if (config.outputFormats.length === 0) {
-      config.outputFormats.push('txt');
-    }
-
     // 読み方向と列方向は固定値（縦書き、右から左）
-    // UIからの設定は無視
+    // デフォルトでテキスト、JSON、XMLを出力
 
     return config;
   }
@@ -386,18 +362,6 @@ class NDLKotenOCRApp {
       this.currentProcessing = null;
       this.showInfo('処理をキャンセルしました');
     }
-  }
-
-  /**
-   * 設定の更新
-   */
-  updateSettings(event) {
-    const { target } = event;
-    console.log(
-      'Settings updated:',
-      target.name,
-      target.value
-    );
   }
 
   /**

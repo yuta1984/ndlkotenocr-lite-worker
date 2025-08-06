@@ -6,6 +6,7 @@
 export class ResultDisplay {
   constructor() {
     this.currentResults = null;
+    this.originalImageData = null;
     this.setupElements();
   }
 
@@ -82,6 +83,9 @@ export class ResultDisplay {
     // テキストブロックの表示
     this.displayTextBlocks(results.textBlocks || []);
 
+    // bbox描画画像の表示
+    this.displayImageWithBboxes(results.textBlocks || []);
+
     // 各形式での結果表示
     this.displayFormattedResults(results);
 
@@ -107,13 +111,6 @@ export class ResultDisplay {
       processingTime = 0,
     } = results;
 
-    const successRate =
-      totalRegions > 0
-        ? Math.round(
-            (successfulRecognitions / totalRegions) * 100
-          )
-        : 0;
-
     statsElement.innerHTML = `
       <div class="stat-item">
         <span class="stat-label">検出された領域数:</span>
@@ -122,10 +119,6 @@ export class ResultDisplay {
       <div class="stat-item">
         <span class="stat-label">認識成功数:</span>
         <span class="stat-value">${successfulRecognitions}</span>
-      </div>
-      <div class="stat-item">
-        <span class="stat-label">認識成功率:</span>
-        <span class="stat-value">${successRate}%</span>
       </div>
       <div class="stat-item">
         <span class="stat-label">処理時間:</span>
@@ -488,6 +481,7 @@ export class ResultDisplay {
    */
   clear() {
     this.currentResults = null;
+    this.originalImageData = null;
 
     if (this.resultContainer) {
       this.resultContainer.classList.add('hidden');
@@ -500,6 +494,7 @@ export class ResultDisplay {
       'result-text',
       'result-json',
       'result-xml',
+      'bbox-image-container',
     ];
 
     sections.forEach((sectionId) => {
@@ -598,6 +593,120 @@ export class ResultDisplay {
     });
 
     return rows.join('\n');
+  }
+
+  /**
+   * 元画像データの設定
+   */
+  setOriginalImageData(imageData) {
+    this.originalImageData = imageData;
+  }
+
+  /**
+   * bbox描画画像の表示
+   */
+  displayImageWithBboxes(textBlocks) {
+    console.log('displayImageWithBboxes called with:', {
+      hasOriginalImageData: !!this.originalImageData,
+      textBlocksLength: textBlocks.length,
+      textBlocks: textBlocks,
+    });
+
+    if (!this.originalImageData) {
+      const container = document.getElementById(
+        'bbox-image-container'
+      );
+      if (container) {
+        container.innerHTML =
+          '<p>bbox描画画像を生成できませんでした（元画像データがありません）</p>';
+      }
+      console.warn('Original image data is missing');
+      return;
+    }
+
+    if (textBlocks.length === 0) {
+      const container = document.getElementById(
+        'bbox-image-container'
+      );
+      if (container) {
+        container.innerHTML =
+          '<p>bbox描画画像を生成できませんでした（テキストブロックが見つかりませんでした）</p>';
+      }
+      console.warn('No text blocks found for bbox drawing');
+      return;
+    }
+
+    try {
+      const canvas = this.drawBoundingBoxes(
+        this.originalImageData,
+        textBlocks
+      );
+      const imageUrl = canvas.toDataURL();
+
+      const container = document.getElementById(
+        'bbox-image-container'
+      );
+      if (container) {
+        container.innerHTML = `
+          <img src="${imageUrl}" alt="bbox描画結果" />
+        `;
+      }
+    } catch (error) {
+      console.error('Error drawing bounding boxes:', error);
+      const container = document.getElementById(
+        'bbox-image-container'
+      );
+      if (container) {
+        container.innerHTML =
+          '<p>bbox描画中にエラーが発生しました</p>';
+      }
+    }
+  }
+
+  /**
+   * Canvas上にbboxを描画
+   */
+  drawBoundingBoxes(imageData, textBlocks) {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+
+    // Canvasサイズを設定
+    canvas.width = imageData.width;
+    canvas.height = imageData.height;
+
+    // 元画像を描画
+    ctx.putImageData(imageData, 0, 0);
+
+    // bboxを描画
+    ctx.strokeStyle = '#FF0000';
+    ctx.lineWidth = 2;
+    ctx.font = '12px Arial';
+    ctx.fillStyle = '#FF0000';
+    ctx.textBaseline = 'top';
+
+    textBlocks.forEach((block, index) => {
+      const { x, y, width, height } = block;
+
+      // bbox矩形を描画
+      ctx.strokeRect(x, y, width, height);
+
+      // テキスト領域番号を描画
+      const label = `${index + 1}`;
+      const textX = x;
+      const textY = Math.max(0, y - 15);
+
+      // 背景を描画
+      const textWidth = ctx.measureText(label).width;
+      ctx.fillStyle = '#FF0000';
+      ctx.fillRect(textX, textY, textWidth + 4, 14);
+
+      // 文字を描画
+      ctx.fillStyle = '#FFFFFF';
+      ctx.fillText(label, textX + 2, textY);
+      ctx.fillStyle = '#FF0000';
+    });
+
+    return canvas;
   }
 
   /**

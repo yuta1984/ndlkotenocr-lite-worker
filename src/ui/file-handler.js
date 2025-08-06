@@ -127,6 +127,9 @@ export class FileHandler {
     // ファイル情報表示
     this.displayFileInfo(file);
 
+    // 画像プレビューを表示
+    this.showImagePreview(file);
+
     // ファイル選択イベントを発火
     this.emit('fileSelected', file);
   }
@@ -238,6 +241,9 @@ export class FileHandler {
     if (this.fileInput) {
       this.fileInput.value = '';
     }
+
+    // プレビューもクリア
+    this.clearPreview();
   }
 
   /**
@@ -268,7 +274,7 @@ export class FileHandler {
     const reader = new FileReader();
     reader.onload = (event) => {
       previewContainer.innerHTML = `
-        <img src="${event.target.result}" alt="プレビュー" style="max-width: 100%; max-height: 300px; object-fit: contain;">
+        <img src="${event.target.result}" alt="プレビュー" style="max-width: 100%; max-height: 250px; object-fit: contain;">
       `;
       previewContainer.classList.remove('hidden');
     };
