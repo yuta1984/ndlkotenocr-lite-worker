@@ -71,6 +71,7 @@ class OCRWorker {
       );
 
       this.isInitialized = true;
+      console.log('OCR Worker initialized successfully');
 
       this.postMessage({
         type: 'OCR_PROGRESS',

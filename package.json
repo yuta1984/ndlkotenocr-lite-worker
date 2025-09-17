@@ -1,6 +1,6 @@
 {
   "name": "ndlkotenocr-lite-worker",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "NDLKotenOCR Web版のWeb Worker対応版",
   "type": "module",
   "main": "./dist/index.js",
@@ -8,6 +8,7 @@
   "types": "./types/index.d.ts",
   "exports": {
     ".": {
+      "types": "./types/index.d.ts",
       "import": "./dist/index.js"
     },
     "./worker": {

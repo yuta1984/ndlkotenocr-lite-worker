@@ -2,7 +2,10 @@
  * モデルファイルのダウンロード・キャッシュ管理モジュール
  */
 
-import { getModelUrl } from './config-loader.js';
+import {
+  getModelUrl,
+  getModelUrls,
+} from './config-loader.js';
 
 const DB_NAME = 'NDLKotenOCRModels';
 const DB_VERSION = 1;
@@ -149,10 +152,7 @@ export async function loadModel(modelType, onProgress) {
  * 全モデルの事前ダウンロード
  */
 export async function preloadAllModels(onProgress) {
-  // 設定からモデル一覧を取得
-  const { getModelUrls } = await import(
-    './config-loader.js'
-  );
+  // 設定からモデル一覧を取得（静的インポートを使用）
   const modelUrls = await getModelUrls();
   const modelTypes = Object.keys(modelUrls);
   const totalModels = modelTypes.length;

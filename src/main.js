@@ -14,20 +14,6 @@ export { workerMessageHandler } from './utils/message-handler.js';
 export { FileHandler } from './ui/file-handler.js';
 export { ResultDisplay } from './ui/result-display.js';
 
-// ユーティリティ関数のエクスポート
-export {
-  loadModel,
-  preloadAllModels,
-  getCachedModels,
-  clearCache,
-} from './utils/model-loader.js';
-
-export {
-  loadConfig,
-  getModelUrls,
-  getModelUrl,
-} from './utils/config-loader.js';
-
 // WebWorkerを使用したOCR処理のヘルパークラス
 export class NDLKotenOCR {
   constructor() {
